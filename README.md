@@ -2,6 +2,7 @@
 
 Sistema de gestión de usuarios con autenticación integrada para Administradores, cifrado de contraseñas, validación estricta de campos y un buscador en tiempo real optimizado para entornos locales.
 
+
 ## Requisitos Previos
 - PHP >= 8.2 (con extensiones `php-mysql`, `php-curl`, `php-mbstring`, `php-xml`)
 - Composer instalado
