@@ -11,7 +11,10 @@ return Application::configure(basePath: dirname(__DIR__))
         health: '/up',
     )
     ->withMiddleware(function (Middleware $middleware): void {
-        //
+        // REGISTRO DEL ALIAS PARA TU MIDDLEWARE DE SEGURIDAD
+        $middleware->alias([
+            'es.admin' => \App\Http\Middleware\VerificarAdministrador::class,
+        ]);
     })
     ->withExceptions(function (Exceptions $exceptions): void {
         //
