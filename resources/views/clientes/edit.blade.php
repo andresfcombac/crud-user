@@ -52,9 +52,17 @@
                 <input type="email" name="correo" class="form-control" value="{{ old('correo', $cliente->correo) }}" required>
             </div>
             <div class="mb-3">
-                <label class="form-label">Cargo</label>
-                <input type="text" name="cargo" class="form-control" value="{{ old('cargo', $cliente->cargo) }}" required>
-            </div>
+    <label class="form-label">Cargo</label>
+    <select name="cargo" class="form-control" required>
+        <option value="Desarrollador" {{ old('cargo', $cliente->cargo) == 'Desarrollador' ? 'selected' : '' }}>Desarrollador</option>
+        <option value="Diseñador" {{ old('cargo', $cliente->cargo) == 'Diseñador' ? 'selected' : '' }}>Diseñador</option>
+        <option value="Gerente de Proyecto" {{ old('cargo', $cliente->cargo) == 'Gerente de Proyecto' ? 'selected' : '' }}>Gerente de Proyecto</option>
+        <option value="Analista de QA" {{ old('cargo', $cliente->cargo) == 'Analista de QA' ? 'selected' : '' }}>Analista de QA</option>
+        <option value="Soporte Técnico" {{ old('cargo', $cliente->cargo) == 'Soporte Técnico' ? 'selected' : '' }}>Soporte Técnico</option>
+    </select>
+    @error('cargo') <div class="error-campo">{{ $message }}</div> @enderror
+</div>
+
             <div class="mb-3">
                 <label class="form-label">Tipo de Usuario (Rol)</label>
                 <select name="tipo_usuario" class="form-control" required>

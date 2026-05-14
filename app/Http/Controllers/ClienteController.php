@@ -65,7 +65,7 @@ class ClienteController extends Controller
             'nombres' => 'required|string|max:50',
             'apellidos' => 'required|string|max:50',
             'correo' => 'required|email|unique:clientes,correo',
-            'cargo' => 'required|string|max:50',
+            'cargo' => 'required|in:Desarrollador,Diseñador,Gerente de Proyecto,Analista de QA,Soporte Técnico',
             'tipo_usuario' => 'required|string',
             'password' => 'required|string|min:6',
         ]);
@@ -94,7 +94,7 @@ class ClienteController extends Controller
             'nombres' => 'required|string|max:50',
             'apellidos' => 'required|string|max:50',
             'correo' => 'required|email|unique:clientes,correo,' . $cliente->id,
-            'cargo' => 'required|string|max:50',
+            'cargo' => 'required|in:Desarrollador,Diseñador,Gerente de Proyecto,Analista de QA,Soporte Técnico',
             'tipo_usuario' => 'required|string',
             'password' => 'nullable|string|min:6',
         ]);

@@ -43,10 +43,18 @@
                 @error('correo') <div class="error-campo">{{ $message }}</div> @enderror
             </div>
             <div class="mb-3">
-                <label class="form-label">Cargo</label>
-                <input type="text" name="cargo" class="form-control" value="{{ old('cargo') }}" required>
-                @error('cargo') <div class="error-campo">{{ $message }}</div> @enderror
-            </div>
+    <label class="form-label">Cargo</label>
+    <select name="cargo" class="form-control" required>
+        <option value="">Selecciona un cargo</option>
+        <option value="Desarrollador" {{ old('cargo') == 'Desarrollador' ? 'selected' : '' }}>Desarrollador</option>
+        <option value="Diseñador" {{ old('cargo') == 'Diseñador' ? 'selected' : '' }}>Diseñador</option>
+        <option value="Gerente de Proyecto" {{ old('cargo') == 'Gerente de Proyecto' ? 'selected' : '' }}>Gerente de Proyecto</option>
+        <option value="Analista de QA" {{ old('cargo') == 'Analista de QA' ? 'selected' : '' }}>Analista de QA</option>
+        <option value="Soporte Técnico" {{ old('cargo') == 'Soporte Técnico' ? 'selected' : '' }}>Soporte Técnico</option>
+    </select>
+    @error('cargo') <div class="error-campo">{{ $message }}</div> @enderror
+</div>
+
             <div class="mb-3">
                 <label class="form-label">Tipo de Usuario (Rol)</label>
                 <select name="tipo_usuario" class="form-control" required>
