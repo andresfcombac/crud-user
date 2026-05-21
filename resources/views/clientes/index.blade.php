@@ -34,6 +34,20 @@
     </style>
 </head>
 <body>
+
+<!-- PEGAR TEMPORALMENTE PARA DIAGNÓSTICO 
+ */ <div style="background: #222; color: #fff; padding: 15px; margin: 20px auto; max-width: 1000px; border-radius: 8px; font-family: monospace; font-size: 13px; line-height: 1.6;">
+    <strong style="color: #1cc88a;">🩺 DIAGNÓSTICO DE PERMISOS:</strong><br>
+    • Usuario conectado: <b>{{ $usuarioLogueado->nombres }} (ID: {{ $usuarioLogueado->id }})</b><br>
+    • Roles asignados: <b>[{{ $usuarioLogueado->roles->pluck('nombre')->implode(', ') ?: 'NINGUNO' }}]</b><br>
+    • ¿Tiene el permiso 'crear-usuarios'?: 
+    @if($usuarioLogueado->tienePermiso('crear-usuarios'))
+        <span style="background: #1cc88a; color: white; padding: 2px 6px; border-radius: 4px;">SÍ TIENE EL PERMISO</span>
+    @else
+        <span style="background: #e74a3b; color: white; padding: 2px 6px; border-radius: 4px;">NO TIENE EL PERMISO (Error de Base de Datos)</span>
+    @endif
+</div> -->
+
     <div class="container">
         <!-- Notificación temporizada (Desaparece en 30 segundos) -->
         @if(session('exito'))
@@ -43,7 +57,10 @@
         <div class="d-flex">
             <h2 class="fw-bold">Módulo de Usuarios</h2>
             <div>
-                <a href="{{ route('clientes.create') }}" class="btn btn-success">Crear Usuario</a>
+                <!-- FILTRO VISUAL: Solo el Administrador (o quien tenga permiso de crear) ve este botón -->
+                @if($usuarioLogueado->tienePermiso('crear-usuarios'))
+                    <a href="{{ route('clientes.create') }}" class="btn btn-success">Crear Usuario</a>
+                @endif
                 <a href="{{ route('logout') }}" class="btn btn-danger">Salir</a>
             </div>
         </div>
@@ -64,7 +81,7 @@
                         <th>Nombre Completo</th>
                         <th>Correo</th>
                         <th>Cargo</th>
-                        <th>Tipo / Rol</th>
+                        <th>Rol Asignado</th>
                         <th class="text-center">Acciones</th>
                     </tr>
                 </thead>
@@ -75,13 +92,30 @@
                         <td>{{ $cliente->nombres }} {{ $cliente->apellidos }}</td>
                         <td>{{ $cliente->correo }}</td>
                         <td>{{ $cliente->cargo }}</td>
-                        <td><span class="badge-rol">{{ $cliente->tipo_usuario }}</span></td>
+                        
+                        <!-- Muestra el nombre real del Rol desde la relación de la BD -->
+                        <td>
+                            <span class="badge-rol">
+                                {{ $cliente->roles->first()?->nombre ?? 'Sin Rol Assigned' }}
+                            </span>
+                        </td>
+                        
                         <td class="text-center">
-                            <a href="{{ route('clientes.edit', $cliente->id) }}" class="btn btn-outline-warning">Editar</a>
-                            <form action="{{ route('clientes.destroy', $cliente->id) }}" method="POST" class="d-inline">
-                                @csrf @method('DELETE')
-                                <button class="btn btn-outline-danger" onclick="return confirm('¿Seguro que deseas eliminar este usuario?')">Borrar</button>
-                            </form>
+                            <!-- FILTRO VISUAL: Opciones que se muestran según los permisos del rol activo -->
+                            @if($usuarioLogueado->tienePermiso('editar-usuarios'))
+                                <a href="{{ route('clientes.edit', $cliente->id) }}" class="btn btn-outline-warning">Editar</a>
+                            @endif
+
+                            @if($usuarioLogueado->tienePermiso('eliminar-usuarios'))
+                                <form action="{{ route('clientes.destroy', $cliente->id) }}" method="POST" class="d-inline">
+                                    @csrf @method('DELETE')
+                                    <button class="btn btn-outline-danger" onclick="return confirm('¿Seguro que deseas eliminar este usuario?')">Borrar</button>
+                                </form>
+                            @endif
+
+                            @if(!$usuarioLogueado->tienePermiso('editar-usuarios') && !$usuarioLogueado->tienePermiso('eliminar-usuarios'))
+                                <span style="color: #999; font-size: 13px;">Lectura</span>
+                            @endif
                         </td>
                     </tr>
                     @endforeach
@@ -130,3 +164,4 @@
     </script>
 </body>
 </html>
+    

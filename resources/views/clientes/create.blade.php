@@ -44,19 +44,31 @@
             </div>
             <div class="mb-3">
                 <label class="form-label">Cargo</label>
-                <input type="text" name="cargo" class="form-control" value="{{ old('cargo') }}" required>
+                <select name="cargo" class="form-control" required>
+                    <option value="">Selecciona un cargo</option>
+                    <option value="Desarrollador" {{ old('cargo') == 'Desarrollador' ? 'selected' : '' }}>Desarrollador</option>
+                    <option value="Diseñador" {{ old('cargo') == 'Diseñador' ? 'selected' : '' }}>Diseñador</option>
+                    <option value="Gerente de Proyecto" {{ old('cargo') == 'Gerente de Proyecto' ? 'selected' : '' }}>Gerente de Proyecto</option>
+                    <option value="Analista de QA" {{ old('cargo') == 'Analista de QA' ? 'selected' : '' }}>Analista de QA</option>
+                    <option value="Soporte Técnico" {{ old('cargo') == 'Soporte Técnico' ? 'selected' : '' }}>Soporte Técnico</option>
+                </select>
                 @error('cargo') <div class="error-campo">{{ $message }}</div> @enderror
             </div>
+
+            <!-- NUEVO SELECTOR DE ROL CONECTADO A LA BD -->
             <div class="mb-3">
-                <label class="form-label">Tipo de Usuario (Rol)</label>
-                <select name="tipo_usuario" class="form-control" required>
-                    <option value="">Selecciona una opción</option>
-                    <option value="Administrador" {{ old('tipo_usuario') == 'Administrador' ? 'selected' : '' }}>Administrador</option>
-                    <option value="Operador" {{ old('tipo_usuario') == 'Operador' ? 'selected' : '' }}>Operador</option>
-                    <option value="Soporte" {{ old('tipo_usuario') == 'Soporte' ? 'selected' : '' }}>Soporte</option>
+                <label class="form-label">Rol asignado (Permisos)</label>
+                <select name="role_id" class="form-control" required>
+                    <option value="">Selecciona un Rol</option>
+                    @foreach($roles as $rol)
+                        <option value="{{ $rol->id }}" {{ old('role_id') == $rol->id ? 'selected' : '' }}>
+                            {{ $rol->nombre }} ({{ $rol->descripcion }})
+                        </option>
+                    @endforeach
                 </select>
-                @error('tipo_usuario') <div class="error-campo">{{ $message }}</div> @enderror
+                @error('role_id') <div class="error-campo">{{ $message }}</div> @enderror
             </div>
+
             <div class="mb-3">
                 <label class="form-label">Contraseña</label>
                 <input type="password" name="password" class="form-control" required>

@@ -74,7 +74,7 @@ class ClienteCrudTest extends TestCase
             'nombres' => 'Ana',
             'apellidos' => 'Rios',
             'correo' => 'ana@test.com',
-            'cargo' => 'Contadora',
+            'cargo' => 'Desarrollador',
             'tipo_usuario' => 'Operador',
             'password' => '1234'
         ]);

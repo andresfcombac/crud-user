@@ -6,12 +6,12 @@
     <title>Editar Usuario</title>
     <style>
         body { background-color: #f4f7f6; font-family: system-ui, -apple-system, sans-serif; display: flex; justify-content: center; align-items: center; min-height: 100vh; margin: 0; padding: 20px 0; }
-        .card { background: white; padding: 30px; border-radius: 15px; box-shadow: 0 10px 25px rgba(0,0,0,0.05); width: 100%; max-width: 450px; }
+        .card { background: white; padding: 30px; border-radius: 15px; box-shadow: 0 10px 25px rgba(0,0,0,0.05); width: 100%; max-width: 450px; box-sizing: border-box; }
         .text-center { text-align: center; margin-bottom: 20px; }
         .fw-bold { font-weight: bold; margin: 0; color: #333; }
         .text-muted { color: #666; font-size: 14px; }
         .mb-3 { margin-bottom: 15px; }
-        .form-label { block: block; font-weight: 600; margin-bottom: 5px; color: #f6c23e; }
+        .form-label { display: block; font-weight: 600; margin-bottom: 5px; color: #f6c23e; }
         .form-control { width: 100%; padding: 10px; border: 1px solid #d1d3e2; border-radius: 8px; box-sizing: border-box; font-size: 14px; }
         .alert-danger { background-color: #f8d7da; color: #721c24; padding: 10px; border-radius: 8px; margin-bottom: 25px; border: 1px solid #f5c6cb; font-size: 14px; }
         .btn { display: block; width: 100%; padding: 12px; border: none; border-radius: 8px; font-weight: bold; cursor: pointer; text-align: center; text-decoration: none; font-size: 14px; box-sizing: border-box; }
@@ -53,23 +53,35 @@
             </div>
             <div class="mb-3">
                 <label class="form-label">Cargo</label>
-                <input type="text" name="cargo" class="form-control" value="{{ old('cargo', $cliente->cargo) }}" required>
-            </div>
-            <div class="mb-3">
-                <label class="form-label">Tipo de Usuario (Rol)</label>
-                <select name="tipo_usuario" class="form-control" required>
-                    <option value="Administrador" {{ old('tipo_usuario', $cliente->tipo_usuario) == 'Administrador' ? 'selected' : '' }}>Administrador</option>
-                    <option value="Operador" {{ old('tipo_usuario', $cliente->tipo_usuario) == 'Operador' ? 'selected' : '' }}>Operador</option>
-                    <option value="Soporte" {{ old('tipo_usuario', $cliente->tipo_usuario) == 'Soporte' ? 'selected' : '' }}>Soporte</option>
+                <select name="cargo" class="form-control" required>
+                    <option value="Desarrollador" {{ old('cargo', $cliente->cargo) == 'Desarrollador' ? 'selected' : '' }}>Desarrollador</option>
+                    <option value="Diseñador" {{ old('cargo', $cliente->cargo) == 'Diseñador' ? 'selected' : '' }}>Diseñador</option>
+                    <option value="Gerente de Proyecto" {{ old('cargo', $cliente->cargo) == 'Gerente de Proyecto' ? 'selected' : '' }}>Gerente de Proyecto</option>
+                    <option value="Analista de QA" {{ old('cargo', $cliente->cargo) == 'Analista de QA' ? 'selected' : '' }}>Analista de QA</option>
+                    <option value="Soporte Técnico" {{ old('cargo', $cliente->cargo) == 'Soporte Técnico' ? 'selected' : '' }}>Soporte Técnico</option>
                 </select>
             </div>
+
+            <!-- MODIFICACIÓN DINÁMICA DEL ROL DEL USUARIO -->
             <div class="mb-3">
-                <label class="form-label">Nueva Contraseña</label>
-                <input type="password" name="password" class="form-control" placeholder="Dejar vacío para no cambiar">
+                <label class="form-label" style="color: #f6c23e;">Rol asignado (Permisos)</label>
+                <select name="role_id" class="form-control" required>
+                    @foreach($roles as $rol)
+                        <option value="{{ $rol->id }}" {{ (old('role_id', $cliente->roles->first()?->id) == $rol->id) ? 'selected' : '' }}>
+                            {{ $rol->nombre }} ({{ $rol->descripcion }})
+                        </option>
+                    @endforeach
+                </select>
             </div>
+
+            <div class="mb-3">
+                <label class="form-label">Contraseña (Dejar en blanco para no cambiar)</label>
+                <input type="password" name="password" class="form-control">
+            </div>
+
             <div style="margin-top: 25px;">
-                <button type="submit" class="btn btn-warning">Actualizar Datos</button>
-                <a href="{{ route('clientes.index') }}" class="btn btn-light">Cancelar</a>
+                <button type="submit" class="btn btn-warning">Guardar Cambios</button>
+                <a href="{{ route('clientes.index') }}" class="btn btn-light">Volver al listado</a>
             </div>
         </form>
     </div>
