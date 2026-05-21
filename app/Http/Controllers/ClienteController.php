@@ -32,14 +32,37 @@ class ClienteController extends Controller
                     // 1. Generar código OTP numérico aleatorio de 6 dígitos
                     $otp = str_pad(random_int(0, 999999), 6, '0', STR_PAD_LEFT);
 
-                    // 2. Guardar el código en las columnas creadas en DBeaver y definir los 10 minutos
-                    $usuario->update([
-                        'otp_code' => $otp,
-                        'otp_expires_at' => now()->addMinutes(10)
+                    // 2. Guardar en la TABLA INTERMEDIA (cliente_mfa) usando Query Builder
+                    \DB::table('cliente_mfa')->insert([
+                        'cliente_id' => $usuario->id,
+                        'token'      => $otp,
+                        'expires_at' => now()->addMinutes(10),
+                        'estado'     => 'No usado',
+                        'created_at' => now(),
+                        'updated_at' => now()
                     ]);
 
-                    // 3. Enviar la notificación por correo electrónico
-                    $usuario->notify(new \App\Notifications\EnviarCodigoOtp($otp));
+                    // 3. ENVÍO REAL CON LA FUNCIÓN mail() NATIVA DE PHP (Configuración Oficial como Array)
+                    $paraAddress = $usuario->correo;
+                    $asuntoEmail = '=?UTF-8?B?' . base64_encode('Tu código de acceso de doble factor') . '?='; // Evita errores de tildes
+                    
+                    $mensajeCuerpo = "¡Hola, " . $usuario->nombres . "!\r\n\r\n"
+                                   . "Has solicitado iniciar sesión. Para completar el acceso, introduce el siguiente código de un solo uso:\r\n"
+                                   . "Código OTP: " . $otp . "\r\n\r\n"
+                                   . "Este código tiene una validez estricta de 10 minutos.\r\n"
+                                   . "Si tú no solicitaste este acceso, por favor ignora este mensaje.";
+
+                    // Estructura de cabeceras en formato Array (Ejemplo oficial de PHP.net)
+                    $cabeceras = [
+                        'From'         => 'Sistema Seguridad PHP <escaner@alianzatemporales.com>',
+                        'Reply-To'     => 'escaner@alianzatemporales.com',
+                        'MIME-Version' => '1.0',
+                        'Content-Type' => 'text/plain; charset=UTF-8',
+                        'X-Mailer'     => 'PHP/' . phpversion()
+                    ];
+
+                    // Ejecución nativa de la función oficial
+                    mail($paraAddress, $asuntoEmail, $mensajeCuerpo, $cabeceras);
 
                     // 4. Guardar el ID de forma temporal para la verificación intermedia
                     session(['2fa_purgue_user_id' => $usuario->id]);
@@ -105,7 +128,7 @@ class ClienteController extends Controller
                 'apellidos' => 'required|string|max:50',
                 'correo' => 'required|email|unique:clientes,correo',
                 'cargo' => 'required|in:Desarrollador,Diseñador,Gerente de Proyecto,Analista de QA,Soporte Técnico',
-                'role_id' => 'required|exists:roles,id', // Reemplazamos validación por el ID de rol
+                'role_id' => 'required|exists:roles,id',
                 'password' => 'required|string|min:6',
             ]);
 
@@ -114,7 +137,7 @@ class ClienteController extends Controller
                 'apellidos' => $request->apellidos,
                 'correo' => $request->correo,
                 'cargo' => $request->cargo,
-                'tipo_usuario' => 'Rol Asignado', // Texto por defecto para rellenar la columna vieja
+                'tipo_usuario' => 'Rol Asignado',
                 'password' => Hash::make($request->password),
             ]);
 
@@ -179,7 +202,7 @@ class ClienteController extends Controller
             return redirect()->route('clientes.index')->with('exito', 'El registro del usuario ha sido eliminado permanentemente.');
         }
 
-        // --- MÓDULO INTERMEDIO DE VERIFICACIÓN OTP ---
+        // --- MÓDULO INTERMEDIO DE VERIFICACIÓN OTP CON TABLA INTERMEDIA ---
 
         public function mostrarFormulario2FA() {
             if (!session()->has('2fa_purgue_user_id')) { return redirect()->route('login'); }
@@ -190,55 +213,75 @@ class ClienteController extends Controller
             if (!session()->has('2fa_purgue_user_id')) { return redirect()->route('login'); }
             
             $request->validate(['code' => 'required|numeric|digits:6']);
-            $usuario = Cliente::find(session('2fa_purgue_user_id'));
+            
+            // Buscamos el token en la tabla intermedia que corresponda al usuario y esté 'No usado'
+            $registroMfa = \DB::table('cliente_mfa')
+                                ->where('cliente_id', session('2fa_purgue_user_id'))
+                                ->where('token', $request->code)
+                                ->where('estado', 'No usado')
+                                ->latest()
+                                ->first();
 
-            // Validación 1: El código debe coincidir
-            if (!$usuario || $usuario->otp_code !== $request->code) {
-                return back()->withErrors(['2fa_error' => 'El código introducido es incorrecto.']);
+            // Validación 1: Si no existe, significa que el código es inválido o ya se usó
+            if (!$registroMfa) {
+                return back()->withErrors(['2fa_error' => 'El código introducido es incorrecto o ya ha sido utilizado anteriormente.']);
             }
 
-            // Validación 2: El tiempo actual no debe haber superado los 10 minutos establecidos
-            if (now()->greaterThan($usuario->otp_expires_at)) {
-                return back()->withErrors(['2fa_error' => 'El código ha expirado. Por favor, vuelve a iniciar sesión para generar uno nuevo.']);
+            // Validación 2: Comprobar la expiración estricta de los 10 minutos
+            if (now()->greaterThan($registroMfa->expires_at)) {
+                return back()->withErrors(['2fa_error' => 'El código ha expirado (Límite de 10 minutos superado). Por favor, vuelve a iniciar sesión.']);
             }
 
-            // Éxito: Limpiamos los rastros del OTP de la base de datos por seguridad
-            $usuario->update([
-                'otp_code' => null,
-                'otp_expires_at' => null
-            ]);
+            // ÉXITO: Actualizamos el estado a 'Usado' inmediatamente para quemarlo
+            \DB::table('cliente_mfa')
+                ->where('id', $registroMfa->id)
+                ->update(['estado' => 'Usado', 'updated_at' => now()]);
 
-            // Otorgamos el acceso definitivo a la plataforma
-            session(['user_id' => $usuario->id]);
+            // Otorgamos acceso oficial a la aplicación
+            session(['user_id' => session('2fa_purgue_user_id')]);
             session()->forget('2fa_purgue_user_id');
 
             return redirect()->route('clientes.index')->with('exito', 'Autenticación de doble factor completada con éxito.');
         }
+
         public function reenviarOtp() {
-    // Verificamos que exista un usuario en el proceso intermedio de login
-    if (!session()->has('2fa_purgue_user_id')) { 
-        return redirect()->route('login'); 
-    }
+            if (!session()->has('2fa_purgue_user_id')) { return redirect()->route('login'); }
 
-    $usuario = Cliente::find(session('2fa_purgue_user_id'));
+            $usuario = Cliente::find(session('2fa_purgue_user_id'));
+            if (!$usuario) { return redirect()->route('login'); }
 
-    if (!$usuario) {
-        return redirect()->route('login')->withErrors(['login_error' => 'Usuario no encontrado.']);
-    }
+            // Generamos un token completamente nuevo
+            $nuevoOtp = str_pad(random_int(0, 999999), 6, '0', STR_PAD_LEFT);
 
-    // 1. Generar un nuevo código OTP de 6 dígitos
-    $nuevoOtp = str_pad(random_int(0, 999999), 6, '0', STR_PAD_LEFT);
+            // Creamos un nuevo registro independiente con estado 'No usado'
+            \DB::table('cliente_mfa')->insert([
+                'cliente_id' => $usuario->id,
+                'token'      => $nuevoOtp,
+                'expires_at' => now()->addMinutes(10),
+                'estado'     => 'No usado',
+                'created_at' => now(),
+                'updated_at' => now()
+            ]);
 
-    // 2. Actualizar las columnas en DBeaver reiniciando el contador a 10 minutos
-    $usuario->update([
-        'otp_code' => $nuevoOtp,
-        'otp_expires_at' => now()->addMinutes(10)
-    ]);
+            // Reenvío nativo utilizando la función mail() de PHP con Array de cabeceras
+            $paraAddress = $usuario->correo;
+            $asuntoEmail = '=?UTF-8?B?' . base64_encode('Nuevo código de acceso solicitado') . '?=';
+            
+            $mensajeCuerpo = "¡Hola, " . $usuario->nombres . "!\r\n\r\n"
+                           . "Se ha solicitado un nuevo token de doble factor.\r\n"
+                           . "Nuevo Código OTP: " . $nuevoOtp . "\r\n\r\n"
+                           . "Este código vencerá en exactamente 10 minutos.";
 
-    // 3. Despachar el nuevo correo (se reflejará en tu laravel.log)
-    $usuario->notify(new \App\Notifications\EnviarCodigoOtp($nuevoOtp));
+            $cabeceras = [
+                'From'         => 'Sistema Seguridad PHP <escaner@alianzatemporales.com>',
+                'Reply-To'     => 'escaner@alianzatemporales.com',
+                'MIME-Version' => '1.0',
+                'Content-Type' => 'text/plain; charset=UTF-8',
+                'X-Mailer'     => 'PHP/' . phpversion()
+            ];
 
-    return back()->with('exito', '¡Código nuevo enviado! Revisa tu bandeja de entrada o historial.');
-}
+            mail($paraAddress, $asuntoEmail, $mensajeCuerpo, $cabeceras);
 
+            return back()->with('exito', '¡Código nuevo enviado con éxito!');
+        }
 }
