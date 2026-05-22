@@ -31,24 +31,37 @@
         .pagination-container { margin-top: 20px; display: flex; justify-content: center; gap: 5px; }
         .pagination-container a, .pagination-container span { padding: 8px 14px; border: 1px solid #d1d3e2; background: white; color: #4e73df; text-decoration: none; border-radius: 5px; }
         .pagination-container .active { background: #4e73df; color: white; border-color: #4e73df; }
+                 
     </style>
 </head>
 <body>
 
-<!-- PEGAR TEMPORALMENTE PARA DIAGNÓSTICO 
- */ <div style="background: #222; color: #fff; padding: 15px; margin: 20px auto; max-width: 1000px; border-radius: 8px; font-family: monospace; font-size: 13px; line-height: 1.6;">
-    <strong style="color: #1cc88a;">🩺 DIAGNÓSTICO DE PERMISOS:</strong><br>
-    • Usuario conectado: <b>{{ $usuarioLogueado->nombres }} (ID: {{ $usuarioLogueado->id }})</b><br>
-    • Roles asignados: <b>[{{ $usuarioLogueado->roles->pluck('nombre')->implode(', ') ?: 'NINGUNO' }}]</b><br>
-    • ¿Tiene el permiso 'crear-usuarios'?: 
-    @if($usuarioLogueado->tienePermiso('crear-usuarios'))
-        <span style="background: #1cc88a; color: white; padding: 2px 6px; border-radius: 4px;">SÍ TIENE EL PERMISO</span>
-    @else
-        <span style="background: #e74a3b; color: white; padding: 2px 6px; border-radius: 4px;">NO TIENE EL PERMISO (Error de Base de Datos)</span>
-    @endif
-</div> -->
+    {{-- 🩺 BLOQUE DE DIAGNÓSTICO DE PERMISOS (Descomentar para pruebas de desarrollo)
+    <div style="background: #222; color: #fff; padding: 15px; margin: 20px auto; max-width: 1000px; border-radius: 8px; font-family: monospace; font-size: 13px; line-height: 1.6;">
+        <strong style="color: #1cc88a;">🩺 DIAGNÓSTICO DE PERMISOS:</strong><br>
+        • Usuario conectado: <b>{{ $usuarioLogueado->nombres }} (ID: {{ $usuarioLogueado->id }})</b><br>
+        • Roles asignados: <b>[{{ $usuarioLogueado->roles->pluck('nombre')->implode(', ') ?: 'NINGUNO' }}]</b><br>
+        • ¿Tiene el permiso 'crear-usuarios'?: 
+        @if($usuarioLogueado->tienePermiso('crear-usuarios'))
+            <span style="background: #1cc88a; color: white; padding: 2px 6px; border-radius: 4px;">SÍ TIENE EL PERMISO</span>
+        @else
+            <span style="background: #e74a3b; color: white; padding: 2px 6px; border-radius: 4px;">NO TIENE EL PERMISO (Error de Base de Datos)</span>
+        @endif
+    </div>
+    --}}
 
     <div class="container">
+        
+        <!-- BARRA SUPERIOR DERECHA: Identificación de Sesión Activa -->
+        <div class="top-bar" style="display: flex; justify-content: flex-end; align-items: center; margin-bottom: 20px; padding: 10px 0;">
+            <div class="user-badge" style="background-color: #ffffff; border: 1px solid #e3e6f0; border-left: 4px solid #4e73df; padding: 8px 16px; border-radius: 8px; font-size: 14px; font-weight: 600; color: #4e73df; box-shadow: 0 4px 6px rgba(0,0,0,0.02); display: flex; align-items: center; gap: 8px;">
+                <span>👤 {{ $usuarioLogueado->nombres }} {{ $usuarioLogueado->apellidos }}</span>
+                <span class="role-text" style="font-size: 11px; background-color: #eaecf4; color: #4e73df; padding: 2px 6px; border-radius: 4px; text-transform: uppercase;">
+                    {{ $usuarioLogueado->roles->first()?->nombre ?? 'Usuario' }}
+                </span>
+            </div>
+        </div>
+
         <!-- Notificación temporizada (Desaparece en 30 segundos) -->
         @if(session('exito'))
             <div id="alerta-temporal" class="alert-id">{{ session('exito') }}</div>
@@ -164,4 +177,3 @@
     </script>
 </body>
 </html>
-    
