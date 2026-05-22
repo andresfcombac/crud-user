@@ -26,6 +26,7 @@
             <p class="text-muted">Actualiza la información del usuario #{{ $cliente->id }}</p>
         </div>
 
+        <!-- Renderizado de errores globales de validación -->
         @if ($errors->any())
             <div class="alert-danger">
                 <ul style="margin: 0; padding-left: 20px;">
@@ -39,18 +40,22 @@
         <form action="{{ route('clientes.update', $cliente->id) }}" method="POST">
             @csrf
             @method('PUT')
+            
             <div class="mb-3">
                 <label class="form-label">Nombres</label>
                 <input type="text" name="nombres" class="form-control" value="{{ old('nombres', $cliente->nombres) }}" required>
             </div>
+            
             <div class="mb-3">
                 <label class="form-label">Apellidos</label>
                 <input type="text" name="apellidos" class="form-control" value="{{ old('apellidos', $cliente->apellidos) }}" required>
             </div>
+            
             <div class="mb-3">
                 <label class="form-label">Correo Electrónico</label>
                 <input type="email" name="correo" class="form-control" value="{{ old('correo', $cliente->correo) }}" required>
             </div>
+            
             <div class="mb-3">
                 <label class="form-label">Cargo</label>
                 <select name="cargo" class="form-control" required>
@@ -62,9 +67,9 @@
                 </select>
             </div>
 
-            <!-- MODIFICACIÓN DINÁMICA DEL ROL DEL USUARIO -->
+            <!-- MODIFICACIÓN DINÁMICA DEL ROL ASOCIADO -->
             <div class="mb-3">
-                <label class="form-label" style="color: #f6c23e;">Rol asignado (Permisos)</label>
+                <label class="form-label">Rol asignado (Permisos)</label>
                 <select name="role_id" class="form-control" required>
                     @foreach($roles as $rol)
                         <option value="{{ $rol->id }}" {{ (old('role_id', $cliente->roles->first()?->id) == $rol->id) ? 'selected' : '' }}>

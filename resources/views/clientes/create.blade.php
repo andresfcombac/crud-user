@@ -55,7 +55,7 @@
                 @error('cargo') <div class="error-campo">{{ $message }}</div> @enderror
             </div>
 
-            <!-- NUEVO SELECTOR DE ROL CONECTADO A LA BD -->
+            <!-- SELECTOR DE ROL CONECTADO A LA BD -->
             <div class="mb-3">
                 <label class="form-label">Rol asignado (Permisos)</label>
                 <select name="role_id" class="form-control" required>
