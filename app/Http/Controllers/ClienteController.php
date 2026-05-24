@@ -63,11 +63,14 @@ class ClienteController extends Controller
             $paraAddress = $usuario->correo;
             $asuntoEmail = '=?UTF-8?B?' . base64_encode('Tu código de acceso de doble factor') . '?=';
             
-            $mensajeCuerpo = "¡Hola, " . $usuario->nombres . "!\r\n\r\n"
-               . "Has solicitado iniciar sesión. Para completar el acceso, introduce el siguiente código de un solo uso:\r\n"
-               . "Código OTP: " . $otp . "\r\n\r\n"
-               . "Este código tiene una validez estricta de 10 minutos.\r\n"
-               . "Si tú no solicitaste este acceso, por favor ignora este mensaje.";
+            $mensajeCuerpo = "¡Hola, " . $usuario->nombres . "! 👋\r\n\r\n"
+               . "Recibimos una solicitud para iniciar sesión en tu cuenta.\r\n"
+               . "Para continuar, ingresa el siguiente código de verificación:\r\n\r\n"
+               . "🔐 Código OTP: " . $otp . "\r\n\r\n"
+               . "Este código estará disponible durante los próximos 10 minutos.\r\n\r\n"
+               . "Si no realizaste esta solicitud, puedes ignorar este mensaje de forma segura.\r\n\r\n"
+               . "Gracias,\r\n"
+               . "El equipo de soporte";
 
 
             $cabeceras = [
@@ -292,7 +295,15 @@ class ClienteController extends Controller
         if (!$usuario) { 
             return redirect()->route('login'); 
         }
-
+         // Marcamos como "Expirado" cualquier token que el usuario haya dejado acumulado sin usar
+        \DB::table('cliente_mfa')
+            ->where('cliente_id', $usuario->id)
+            ->where('estado', 'No usado')
+            ->update([
+                'estado' => 'Expirado',
+                'updated_at' => now()
+            ]);
+ 
         // Generamos un token completamente nuevo
         $nuevoOtp = str_pad(random_int(0, 999999), 6, '0', STR_PAD_LEFT);
 
@@ -326,5 +337,87 @@ class ClienteController extends Controller
         mail($paraAddress, $asuntoEmail, $mensajeCuerpo, $cabeceras);
 
         return back()->with('exito', '¡Código nuevo enviado con éxito!');
+    }
+        // 1. Muestra la pantalla para ingresar el correo
+    public function mostrarFormularioSolicitud() {
+        return view('clientes.solicitar_cambio_password');
+    }
+
+    // 2. Genera el token y envía el enlace real por PHP mail()
+    public function enviarEnlaceRecuperacion(Request $request) {
+        $request->validate(['correo' => 'required|email|exists:clientes,correo'], [
+            'correo.exists' => 'No encontramos ningún usuario registrado con ese correo electrónico.'
+        ]);
+
+        // Generamos un token seguro y único
+        $token = Str::random(64);
+
+        // Guardamos en la tabla de DBeaver con validez de 15 minutos
+        DB::table('password_resets')->insert([
+            'correo' => $request->correo,
+            'token' => $token,
+            'expires_at' => now()->addMinutes(15),
+            'created_at' => now()
+        ]);
+
+        // Creamos el enlace web que irá en el correo electrónico
+        $enlaceUrl = route('password.reset', ['token' => $token]);
+
+        // Envío con la función mail() nativa de PHP
+        $paraAddress = $request->correo;
+        $asuntoEmail = '=?UTF-8?B?' . base64_encode('Restablecer tu contraseña') . '?=';
+        
+        $mensajeCuerpo = "Has solicitado restablecer tu contraseña.\r\n\r\n"
+                       . "Haz clic en el siguiente enlace para ingresar tu nueva clave:\r\n"
+                       . $enlaceUrl . "\r\n\r\n"
+                       . "Este enlace es de un solo uso y vencerá en exactamente 15 minutos.\r\n"
+                       . "Si tú no realizaste esta solicitud, puedes ignorar este correo de forma segura.";
+
+        $cabeceras = [
+            'From'         => 'Sistema Seguridad PHP <escaner@alianzatemporales.com>',
+            'Reply-To'     => 'escaner@alianzatemporales.com',
+            'MIME-Version' => '1.0',
+            'Content-Type' => 'text/plain; charset=UTF-8',
+            'X-Mailer'     => 'PHP/' . phpversion()
+        ];
+
+        mail($paraAddress, $asuntoEmail, $mensajeCuerpo, $cabeceras);
+
+        return back()->with('exito', 'Hemos enviado un enlace de recuperación a tu correo electrónico. Revisa tu bandeja.');
+    }
+
+    // 3. Muestra el formulario para escribir la nueva clave (si el token es válido)
+    public function mostrarFormularioRestablecimiento($token) {
+        $reset = DB::table('password_resets')->where('token', $token)->first();
+
+        if (!$reset || now()->greaterThan($reset->expires_at)) {
+            return redirect()->route('login')->withErrors(['login_error' => 'El enlace de recuperación es inválido o ya ha expirado.']);
+        }
+
+        return view('clientes.restablecer_password', compact('token'));
+    }
+
+    // 4. Procesa el cambio y actualiza la base de datos
+    public function actualizarPassword(Request $request) {
+        $request->validate([
+            'token' => 'required',
+            'password' => 'required|string|min:6|confirmed' // Requiere que agregues un campo password_confirmation en el HTML
+        ]);
+
+        $reset = DB::table('password_resets')->where('token', $request->token)->first();
+
+        if (!$reset || now()->greaterThan($reset->expires_at)) {
+            return redirect()->route('login')->withErrors(['login_error' => 'La solicitud expiró. Inténtalo de nuevo.']);
+        }
+
+        // Actualizamos la contraseña del cliente encriptándola en Hash
+        DB::table('clientes')->where('correo', $reset->correo)->update([
+            'password' => Hash::make($request->password)
+        ]);
+
+        // Limpiamos el token usado para que no se pueda volver a utilizar
+        DB::table('password_resets')->where('token', $request->token)->delete();
+
+        return redirect()->route('login')->with('exito', '¡Contraseña actualizada con éxito! Ya puedes iniciar sesión de forma normal.');
     }
 }

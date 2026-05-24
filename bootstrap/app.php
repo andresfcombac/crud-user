@@ -10,12 +10,13 @@ return Application::configure(basePath: dirname(__DIR__))
         commands: __DIR__.'/../routes/console.php',
         health: '/up',
     )
-    ->withMiddleware(function (Middleware $middleware): void {
-        // REGISTRO DEL ALIAS PARA TU MIDDLEWARE DE SEGURIDAD
-        $middleware->alias([
-            'es.admin' => \App\Http\Middleware\VerificarAdministrador::class,
+    ->withMiddleware(function (Middleware $middleware) {
+        // --- AQUÍ REGISTRAMOS TU MIDDLEWARE DE FORMA GLOBAL ---
+        $middleware->web(append: [
+            \App\Http\Middleware\NoGuardarCache::class,
+            \App\Http\Middleware\TimeoutInactividad::class,
         ]);
     })
-    ->withExceptions(function (Exceptions $exceptions): void {
+    ->withExceptions(function (Exceptions $exceptions) {
         //
     })->create();

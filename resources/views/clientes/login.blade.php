@@ -59,6 +59,10 @@
                     <input type="password" name="password" class="form-control" placeholder="••••••••" required autocomplete="current-password">
                 </div>
                 <button type="submit" class="btn-submit">Autenticar Entrada</button>
+                <a href="{{ route('password.request') }}" style="display: inline-block; margin-top: 15px; font-size: 13px; color: #4e73df; text-decoration: none; font-weight: 500;">
+    ¿Olvidaste tu contraseña? Recuperar aquí
+</a>
+
             </form>
         </div>
     </div>

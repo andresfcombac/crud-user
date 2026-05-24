@@ -26,6 +26,12 @@ Route::get('clientes/{cliente}/edit', [ClienteController::class, 'edit'])->name(
 Route::put('clientes/{cliente}', [ClienteController::class, 'update'])->name('clientes.update');
 Route::delete('clientes/{cliente}', [ClienteController::class, 'destroy'])->name('clientes.destroy');
 
+// Rutas para la recuperación de contraseña
+Route::get('password/reset', [ClienteController::class, 'mostrarFormularioSolicitud'])->name('password.request');
+Route::post('password/email', [ClienteController::class, 'enviarEnlaceRecuperacion'])->name('password.email');
+Route::get('password/reset/{token}', [ClienteController::class, 'mostrarFormularioRestablecimiento'])->name('password.reset');
+Route::post('password/reset', [ClienteController::class, 'actualizarPassword'])->name('password.update');
+
 Route::get('/', function () {
     return redirect()->route('clientes.index');
 });

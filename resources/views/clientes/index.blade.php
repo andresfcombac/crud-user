@@ -175,5 +175,37 @@
             }, 30000); // 30000 milisegundos = 30 segundos
         }
     </script>
+            <script>
+        // --- TIMEOUT POR INACTIVIDAD SILENCIOSA (JAVASCRIPT) ---
+        let tiempoInactivo;
+        let sesionExpirada = false;
+        
+        function resetearTemporizador() {
+            // Si la sesión ya se marcó como expirada en el cliente, cualquier interacción lo expulsa
+            if (sesionExpirada) {
+                window.location.href = "{{ route('logout') }}";
+                return;
+            }
+
+            clearTimeout(tiempoInactivo);
+            
+            // 180000 milisegundos = 3 minutos exactos
+            tiempoInactivo = setTimeout(() => {
+                // Cambia el estado internamente sin ventanas emergentes (Silencioso)
+                sesionExpirada = true;
+                
+                // Opción voluntaria: Redirección automática inmediata tras los 3 minutos
+                window.location.href = "{{ route('logout') }}";
+            }, 180000); 
+        }
+
+        // Registrar los escuchadores de eventos para detectar interacciones físicas
+        window.onload = resetearTemporizador;
+        window.onmousemove = resetearTemporizador;
+        window.onmousedown = resetearTemporizador; 
+        window.ontouchstart = resetearTemporizador;
+        window.onclick = resetearTemporizador;     
+        window.onkeydown = resetearTemporizador;   
+    </script>
 </body>
 </html>
