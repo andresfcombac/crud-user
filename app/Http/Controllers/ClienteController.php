@@ -418,6 +418,24 @@ class ClienteController extends Controller
         // Limpiamos el token usado para que no se pueda volver a utilizar
         DB::table('password_resets')->where('token', $request->token)->delete();
 
-        return redirect()->route('login')->with('exito', '¡Contraseña actualizada con éxito! Ya puedes iniciar sesión de forma normal.');
+        return redirect()->route('login')->with('exito', '¡Contraseña actualizada con éxito! Ya puedes iniciar sesión de forma normal.');     
+        }
+        public function mostrarAuditoria() {
+        if (!session()->has('user_id')) { return redirect()->route('login'); }
+        
+        $usuarioLogueado = Cliente::find(session('user_id'));
+        if (!$usuarioLogueado || !$usuarioLogueado->tienePermiso('ver-usuarios')) {
+            return redirect()->route('clientes.index')->with('error', 'No tienes permisos para ver las bitácoras.');
+        }
+
+        // Consultamos la tabla uniendo el autor para saber el nombre del administrador
+        $registros = \DB::table('auditoria_usuarios')
+            ->join('clientes', 'auditoria_usuarios.autor_id', '=', 'clientes.id')
+            ->select('auditoria_usuarios.*', 'clientes.nombres', 'clientes.apellidos')
+            ->orderBy('auditoria_usuarios.created_at', 'desc')
+            ->paginate(10);
+
+        return view('clientes.auditoria', compact('registros', 'usuarioLogueado'));
     }
+    
 }
