@@ -25,6 +25,8 @@ Route::post('clientes', [ClienteController::class, 'store'])->name('clientes.sto
 Route::get('clientes/{cliente}/edit', [ClienteController::class, 'edit'])->name('clientes.edit');
 Route::put('clientes/{cliente}', [ClienteController::class, 'update'])->name('clientes.update');
 Route::delete('clientes/{cliente}', [ClienteController::class, 'destroy'])->name('clientes.destroy');
+Route::get('auditoria', [ClienteController::class, 'mostrarAuditoria'])->name('auditoria.index');
+
 
 // Rutas para la recuperación de contraseña
 Route::get('password/reset', [ClienteController::class, 'mostrarFormularioSolicitud'])->name('password.request');
