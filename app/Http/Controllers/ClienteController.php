@@ -411,31 +411,60 @@ class ClienteController extends Controller
         return view('clientes.restablecer_password', compact('token'));
     }
 
-    // 4. Procesa el cambio y actualiza la base de datos
+        // 4. Procesa el cambio y actualiza la base de datos
     public function actualizarPassword(Request $request) {
         $request->validate([
             'token' => 'required',
-            'password' => 'required|string|min:6|confirmed' // Requiere que agregues un campo password_confirmation en el HTML
+            'password' => 'required|string|min:6|confirmed'
         ]);
 
         $reset = DB::table('password_resets')->where('token', $request->token)->first();
 
         if (!$reset || now()->greaterThan($reset->expires_at)) {
-            return redirect()->route('login')->withErrors(['login_error' => 'La solicitud expiró. Inténtalo de nuevo.']);
+            return redirect()->route('login')->with('errors', ['login_error' => 'La solicitud expiró. Inténtalo de nuevo.']);
         }
 
-        // Actualizamos la contraseña del cliente encriptándola en Hash
+        // 1. Buscamos los datos del cliente antes de borrar el token para saber su nombre
+        $usuario = DB::table('clientes')->where('correo', $reset->correo)->first();
+
+        // 2. Actualizamos la contraseña del cliente encriptándola en Hash
         DB::table('clientes')->where('correo', $reset->correo)->update([
             'password' => Hash::make($request->password)
         ]);
 
-                // Limpiamos el token usado para que no se pueda volver a utilizar
+        // 3. REGISTRO DE AUDITORÍA NATIVO (CAMBIO DE CONTRASEÑA)
+        \Log::info("AUDITORIA: El usuario con correo " . $reset->correo . " RESTABLECIÓ su contraseña de acceso con éxito | IP: " . $request->ip());
+
+        // 4. NOTIFICACIÓN POR CORREO REAL DE PHP mail()
+        if ($usuario) {
+            $paraAddress = $usuario->correo;
+            $asuntoEmail = '=?UTF-8?B?' . base64_encode('Tu contraseña ha sido cambiada con éxito') . '?=';
+            
+            $mensajeCuerpo = "¡Hola, " . $usuario->nombres . "!\r\n\r\n"
+                           . "Te notificamos que la contraseña de tu cuenta ha sido cambiada exitosamente hoy.\r\n\r\n"
+                           . "Detalles de la operación:\r\n"
+                           . "• Dirección IP: " . $request->ip() . "\r\n"
+                           . "• Fecha/Hora: " . now()->toDateTimeString() . "\r\n\r\n"
+                           . "Si tú realizaste este cambio, puedes ignorar este mensaje.\r\n"
+                           . "Si NO solicitaste este cambio, por favor ponte en contacto con el administrador del sistema inmediatamente para asegurar tu cuenta.";
+
+            $cabeceras = [
+                'From'         => 'Sistema Seguridad PHP <escaner@alianzatemporales.com>',
+                'Reply-To'     => 'escaner@alianzatemporales.com',
+                'MIME-Version' => '1.0',
+                'Content-Type' => 'text/plain; charset=UTF-8',
+                'X-Mailer'     => 'PHP/' . phpversion()
+            ];
+
+            mail($paraAddress, $asuntoEmail, $mensajeCuerpo, $cabeceras);
+        }
+
+        // 5. Limpiamos el token usado para que no se pueda volver a utilizar
         DB::table('password_resets')->where('token', $request->token)->delete();
 
-        return redirect()->route('login')->with('exito', '¡Contraseña actualizada con éxito! Ya puedes iniciar sesión de forma normal.');     
+        return redirect()->route('login')->with('exito', '¡Contraseña actualizada con éxito! Ya puedes iniciar sesión de forma normal y hemos enviado una confirmación a tu correo.');
     }
-
-    public function mostrarAuditoria() {
+        public function mostrarAuditoria() {
         if (!session()->has('user_id')) { return redirect()->route('login'); }
         
         $usuarioLogueado = Cliente::find(session('user_id'));
