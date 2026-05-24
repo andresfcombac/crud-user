@@ -163,7 +163,7 @@ class ClienteController extends Controller
         $nuevoCliente->roles()->attach($request->role_id);
 
         // --- REGISTRO DE AUDITORÍA NATIVO (CREACIÓN) ---
-        \Log::info("AUDITORIA: El administrador ID #" . session('user_id') . " CREÓ al usuario: " . $nuevoCliente->nombres . " " . $nuevoCliente->getOriginal('apellidos') . " | IP: " . $request->ip());
+        \Log::info("AUDITORIA: El administrador " . $usuarioLogueado->nombres . " " . $usuarioLogueado->apellidos . " CREÓ al usuario: " . $nuevoCliente->nombres . " " . $nuevoCliente->apellidos . " | IP: " . $request->ip());
 
         return redirect()->route('clientes.index')->with('exito', '¡Excelente! El nuevo usuario ha sido registrado y su rol fue asignado.');
     }
@@ -212,7 +212,7 @@ class ClienteController extends Controller
         $cliente->roles()->sync([$request->role_id]);
 
         // --- REGISTRO DE AUDITORÍA NATIVO (EDICIÓN) ---
-        \Log::info("AUDITORIA: El administrador ID #" . session('user_id') . " EDITÓ al usuario ID #" . $cliente->id . " (" . $cliente->nombres . " " . $cliente->apellidos . ") | IP: " . $request->ip());
+        \Log::info("AUDITORIA: El administrador " . $usuarioLogueado->nombres . " " . $usuarioLogueado->apellidos . " EDITÓ al usuario ID #" . $cliente->id . " (" . $cliente->nombres . " " . $cliente->apellidos . ") | IP: " . $request->ip());
 
         return redirect()->route('clientes.index')->with('exito', 'Los cambios se han guardado de forma exitosa.');
     }
@@ -228,7 +228,7 @@ class ClienteController extends Controller
 
         // --- REGISTRO DE AUDITORÍA NATIVO (ELIMINACIÓN) ---
         // Guardamos los datos antes de que se complete el retorno
-        \Log::info("AUDITORIA: El administrador ID #" . session('user_id') . " ELIMINÓ al usuario ID #" . $cliente->id . " (" . $cliente->nombres . " " . $cliente->apellidos . ") | IP: " . request()->ip());
+        \Log::info("AUDITORIA: El administrador " . $usuarioLogueado->nombres . " " . $usuarioLogueado->apellidos . " ELIMINÓ al usuario ID #" . $cliente->id . " (" . $cliente->nombres . " " . $cliente->apellidos . ") | IP: " . request()->ip());
 
         // Se ejecuta el borrado físico de la base de datos
         $cliente->delete();
@@ -433,7 +433,8 @@ class ClienteController extends Controller
         ]);
 
         // 3. REGISTRO DE AUDITORÍA NATIVO (CAMBIO DE CONTRASEÑA)
-        \Log::info("AUDITORIA: El usuario con correo " . $reset->correo . " RESTABLECIÓ su contraseña de acceso con éxito | IP: " . $request->ip());
+        $nombreCompleto = $usuario ? ($usuario->nombres . " " . $usuario->apellidos) : $reset->correo;
+        \Log::info("AUDITORIA: El usuario " . $nombreCompleto . " RESTABLECIÓ su contraseña de acceso con éxito | IP: " . $request->ip());
 
         // 4. NOTIFICACIÓN POR CORREO REAL DE PHP mail()
         if ($usuario) {
