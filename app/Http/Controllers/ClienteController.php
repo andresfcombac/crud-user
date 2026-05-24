@@ -132,7 +132,7 @@ class ClienteController extends Controller
         return view('clientes.create', compact('roles'));
     }
 
-        public function store(Request $request) {
+            public function store(Request $request) {
         if (!session()->has('user_id')) { return redirect()->route('login'); }
 
         $usuarioLogueado = Cliente::find(session('user_id'));
@@ -141,7 +141,7 @@ class ClienteController extends Controller
             return redirect()->route('clientes.index')->with('error', 'Acción no autorizada.');
         }
 
-                $request->validate([
+        $request->validate([
             'nombres' => 'required|string|max:50',
             'apellidos' => 'required|string|max:50',
             'correo' => 'required|email|unique:clientes,correo',
@@ -162,8 +162,12 @@ class ClienteController extends Controller
         // Vinculamos el rol en la tabla intermedia de la base de datos
         $nuevoCliente->roles()->attach($request->role_id);
 
+        // --- REGISTRO DE AUDITORÍA NATIVO (CREACIÓN) ---
+        \Log::info("AUDITORIA: El administrador ID #" . session('user_id') . " CREÓ al usuario: " . $nuevoCliente->nombres . " " . $nuevoCliente->getOriginal('apellidos') . " | IP: " . $request->ip());
+
         return redirect()->route('clientes.index')->with('exito', '¡Excelente! El nuevo usuario ha sido registrado y su rol fue asignado.');
     }
+
 
         public function edit(Cliente $cliente) {
         if (!session()->has('user_id')) { return redirect()->route('login'); }
@@ -178,7 +182,7 @@ class ClienteController extends Controller
         return view('clientes.edit', compact('cliente', 'roles'));
     }
 
-            public function update(Request $request, Cliente $cliente) {
+                public function update(Request $request, Cliente $cliente) {
         if (!session()->has('user_id')) { return redirect()->route('login'); }
 
         $usuarioLogueado = Cliente::find(session('user_id'));
@@ -207,10 +211,13 @@ class ClienteController extends Controller
         // Sincronizamos el rol para cambiar el viejo por el nuevo en la base de datos
         $cliente->roles()->sync([$request->role_id]);
 
+        // --- REGISTRO DE AUDITORÍA NATIVO (EDICIÓN) ---
+        \Log::info("AUDITORIA: El administrador ID #" . session('user_id') . " EDITÓ al usuario ID #" . $cliente->id . " (" . $cliente->nombres . " " . $cliente->apellidos . ") | IP: " . $request->ip());
+
         return redirect()->route('clientes.index')->with('exito', 'Los cambios se han guardado de forma exitosa.');
     }
 
-    public function destroy(Cliente $cliente) {
+        public function destroy(Cliente $cliente) {
         if (!session()->has('user_id')) { return redirect()->route('login'); }
         
         $usuarioLogueado = Cliente::find(session('user_id'));
@@ -219,9 +226,16 @@ class ClienteController extends Controller
             return redirect()->route('clientes.index')->with('error', 'No cuentas con los permisos para eliminar registros.');
         }
 
+        // --- REGISTRO DE AUDITORÍA NATIVO (ELIMINACIÓN) ---
+        // Guardamos los datos antes de que se complete el retorno
+        \Log::info("AUDITORIA: El administrador ID #" . session('user_id') . " ELIMINÓ al usuario ID #" . $cliente->id . " (" . $cliente->nombres . " " . $cliente->apellidos . ") | IP: " . request()->ip());
+
+        // Se ejecuta el borrado físico de la base de datos
         $cliente->delete();
+
         return redirect()->route('clientes.index')->with('exito', 'El registro del usuario ha sido eliminado permanentemente.');
     }
+
 
     public function mostrarFormulario2FA() {
         if (!session()->has('2fa_purgue_user_id')) { return redirect()->route('login'); }
@@ -415,12 +429,13 @@ class ClienteController extends Controller
             'password' => Hash::make($request->password)
         ]);
 
-        // Limpiamos el token usado para que no se pueda volver a utilizar
+                // Limpiamos el token usado para que no se pueda volver a utilizar
         DB::table('password_resets')->where('token', $request->token)->delete();
 
         return redirect()->route('login')->with('exito', '¡Contraseña actualizada con éxito! Ya puedes iniciar sesión de forma normal.');     
-        }
-        public function mostrarAuditoria() {
+    }
+
+    public function mostrarAuditoria() {
         if (!session()->has('user_id')) { return redirect()->route('login'); }
         
         $usuarioLogueado = Cliente::find(session('user_id'));
@@ -428,14 +443,22 @@ class ClienteController extends Controller
             return redirect()->route('clientes.index')->with('error', 'No tienes permisos para ver las bitácoras.');
         }
 
-        // Consultamos la tabla uniendo el autor para saber el nombre del administrador
-        $registros = \DB::table('auditoria_usuarios')
-            ->join('clientes', 'auditoria_usuarios.autor_id', '=', 'clientes.id')
-            ->select('auditoria_usuarios.*', 'clientes.nombres', 'clientes.apellidos')
-            ->orderBy('auditoria_usuarios.created_at', 'desc')
-            ->paginate(10);
+        // Leemos las ultimas lineas del archivo log real de Laravel en Ubuntu
+        $logPath = storage_path('logs/laravel.log');
+        $registros = [];
+
+        if (file_exists($logPath)) {
+            $lineas = file($logPath);
+            
+            // Filtramos unicamente las lineas que tengan nuestra marca de AUDITORIA
+            $lineasFiltradas = array_filter($lineas, function($linea) {
+                return str_contains($linea, 'AUDITORIA:');
+            });
+            
+            // Reversamos para ver lo mas reciente primero y tomamos los ultimos 20 registros
+            $registros = array_reverse(array_slice($lineasFiltradas, -20));
+        }
 
         return view('clientes.auditoria', compact('registros', 'usuarioLogueado'));
     }
-    
 }
