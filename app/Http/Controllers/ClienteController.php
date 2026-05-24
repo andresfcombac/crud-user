@@ -491,4 +491,86 @@ class ClienteController extends Controller
 
         return view('clientes.auditoria', compact('registros', 'usuarioLogueado'));
     }
+        // 1. Muestra la interfaz del perfil con los datos del usuario logueado
+    public function mostrarPerfil() {
+        if (!session()->has('user_id')) { return redirect()->route('login'); }
+        
+        $usuarioLogueado = Cliente::find(session('user_id'));
+        if (!$usuarioLogueado) { return redirect()->route('logout'); }
+
+        return view('clientes.perfil', compact('usuarioLogueado'));
+    }
+
+    // 2. Actualiza los datos básicos (Nombres, Apellidos, Cargo)
+    public function actualizarPerfil(Request $request) {
+        if (!session()->has('user_id')) { return redirect()->route('login'); }
+        
+        $usuarioLogueado = Cliente::find(session('user_id'));
+        if (!$usuarioLogueado) { return redirect()->route('logout'); }
+
+        $request->validate([
+            'nombres' => 'required|string|max:50',
+            'apellidos' => 'required|string|max:50',
+            'cargo' => 'required|in:Desarrollador,Diseñador,Gerente de Proyecto,Analista de QA,Soporte Técnico',
+        ]);
+
+        // Guardamos los cambios en la base de datos
+        $usuarioLogueado->update($request->only(['nombres', 'apellidos', 'cargo']));
+
+        // --- REGISTRO DE AUDITORÍA NATIVO ---
+        \Log::info("AUDITORIA: El usuario " . $usuarioLogueado->nombres . " " . $usuarioLogueado->apellidos . " ACTUALIZÓ sus datos de perfil personal | IP: " . $request->ip());
+
+        return back()->with('exito', '¡Datos de perfil actualizados con éxito!');
+    }
+
+    // 3. Cambia la contraseña validando que conozca la clave actual
+    public function cambiarPasswordPerfil(Request $request) {
+        if (!session()->has('user_id')) { return redirect()->route('login'); }
+        
+        $usuarioLogueado = Cliente::find(session('user_id'));
+        if (!$usuarioLogueado) { return redirect()->route('logout'); }
+
+        $request->validate([
+            'password_actual' => 'required',
+            'password' => 'required|string|min:6|confirmed',
+        ], [
+            'password.confirmed' => 'La confirmación de la nueva contraseña no coincide.'
+        ]);
+
+        // VERIFICACIÓN CRÍTICA: ¿La contraseña actual es correcta?
+        if (!Hash::check($request->password_actual, $usuarioLogueado->password)) {
+            return back()->withErrors(['password_error' => 'La contraseña actual introducida es incorrecta.']);
+        }
+
+        // Actualizamos con la nueva clave encriptada en Hash
+        $usuarioLogueado->update([
+            'password' => Hash::make($request->password)
+        ]);
+
+        // --- REGISTRO DE AUDITORÍA NATIVO ---
+        \Log::info("AUDITORIA: El usuario " . $usuarioLogueado->nombres . " " . $usuarioLogueado->apellidos . " CAMBIÓ su contraseña desde el módulo de perfil | IP: " . $request->ip());
+
+        // --- NOTIFICACIÓN POR CORREO REAL PHP mail() ---
+        $paraAddress = $usuarioLogueado->correo;
+        $asuntoEmail = '=?UTF-8?B?' . base64_encode('Notificación de seguridad: Cambio de contraseña') . '?=';
+        
+        $mensajeCuerpo = "¡Hola, " . $usuarioLogueado->nombres . "!\r\n\r\n"
+                       . "Te confirmamos que has cambiado tu contraseña de acceso con éxito desde tu panel de perfil.\r\n\r\n"
+                       . "Detalles de la alerta:\r\n"
+                       . "• Ubicación IP: " . $request->ip() . "\r\n"
+                       . "• Fecha y Hora: " . now()->toDateTimeString() . "\r\n\r\n"
+                       . "Si no fuiste tú quien realizó esta acción, cambia tus credenciales de inmediato o contacta a soporte.";
+
+        $cabeceras = [
+            'From'         => 'Sistema Seguridad PHP <escaner@alianzatemporales.com>',
+            'Reply-To'     => 'escaner@alianzatemporales.com',
+            'MIME-Version' => '1.0',
+            'Content-Type' => 'text/plain; charset=UTF-8',
+            'X-Mailer'     => 'PHP/' . phpversion()
+        ];
+
+        mail($paraAddress, $asuntoEmail, $mensajeCuerpo, $cabeceras);
+
+        return back()->with('exito', '¡Contraseña modificada con éxito! Te hemos enviado un correo de confirmación.');
+    }
 }

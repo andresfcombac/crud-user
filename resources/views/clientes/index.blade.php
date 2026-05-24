@@ -36,15 +36,17 @@
 
     <div class="container">
         
-        <!-- BARRA SUPERIOR DERECHA: Identificación de Sesión Activa -->
+                <!-- BARRA SUPERIOR DERECHA: Identificación de Sesión Activa y Acceso al Perfil -->
         <div class="top-bar" style="display: flex; justify-content: flex-end; align-items: center; margin-bottom: 20px; padding: 10px 0;">
-            <div class="user-badge" style="background-color: #ffffff; border: 1px solid #e3e6f0; border-left: 4px solid #4e73df; padding: 8px 16px; border-radius: 8px; font-size: 14px; font-weight: 600; color: #4e73df; box-shadow: 0 4px 6px rgba(0,0,0,0.02); display: flex; align-items: center; gap: 8px;">
+            <div class="user-badge" style="background-color: #ffffff; border: 1px solid #e3e6f0; border-left: 4px solid #4e73df; padding: 8px 16px; border-radius: 8px; font-size: 14px; font-weight: 600; color: #4e73df; box-shadow: 0 4px 6px rgba(0,0,0,0.02); display: flex; align-items: center; gap: 12px;">
                 <span>👤 {{ $usuarioLogueado->nombres }} {{ $usuarioLogueado->apellidos }}</span>
                 <span class="role-text" style="font-size: 11px; background-color: #eaecf4; color: #4e73df; padding: 2px 6px; border-radius: 4px; text-transform: uppercase;">
                     {{ $usuarioLogueado->roles->first()?->nombre ?? 'Usuario' }}
                 </span>
+                <a href="{{ route('perfil.index') }}" style="font-size: 13px; color: #1cc88a; text-decoration: none; border-left: 1px solid #d1d3e2; padding-left: 10px; font-weight: bold;">⚙️ Mi Cuenta</a>
             </div>
         </div>
+
 
         <!-- Notificación temporizada (Desaparece en 30 segundos) -->
         @if(session('exito'))

@@ -27,6 +27,11 @@ Route::put('clientes/{cliente}', [ClienteController::class, 'update'])->name('cl
 Route::delete('clientes/{cliente}', [ClienteController::class, 'destroy'])->name('clientes.destroy');
 Route::get('auditoria', [ClienteController::class, 'mostrarAuditoria'])->name('auditoria.index');
 
+// Rutas para el Módulo de Perfil Personal
+Route::get('perfil', [ClienteController::class, 'mostrarPerfil'])->name('perfil.index');
+Route::post('perfil/actualizar', [ClienteController::class, 'actualizarPerfil'])->name('perfil.update');
+Route::post('perfil/password', [ClienteController::class, 'cambiarPasswordPerfil'])->name('perfil.password');
+
 
 // Rutas para la recuperación de contraseña
 Route::get('password/reset', [ClienteController::class, 'mostrarFormularioSolicitud'])->name('password.request');
